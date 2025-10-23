@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
   // Mantém a pasta 'public' fora de 'src' como diretório de estáticos
   publicDir: resolve(__dirname, 'public'),
   server: {
+    host: true,
     port: 3000,
     open: true,
     headers: {
