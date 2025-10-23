@@ -40,6 +40,8 @@ import ContactSection from './components/sections/ContactSection.vue'
 import { onMounted, onUnmounted } from 'vue'
 import { useFacebookTracking } from './composables/useFacebookTracking'
 import { useIntersectionTracking } from './composables/useIntersectionTracking'
+import { useUTMTracking } from './composables/useUTMTracking'
+import { initializeTrackingSystem } from './utils/trackingOptimizer'
   
 
 export default {
@@ -55,18 +57,44 @@ export default {
     ContactSection
   },
   setup() {
-    const { trackPageView, initializeTracking } = useFacebookTracking()
+    const { trackPageView } = useFacebookTracking()
     const { trackedSections } = useIntersectionTracking()
+    const { initializeUTMTracking } = useUTMTracking()
     
-    onMounted(() => {
-      // Inicializar tracking de forma simples
-      setTimeout(() => {
-        try {
-          initializeTracking()
-        } catch (error) {
-          console.warn('Erro ao inicializar tracking:', error)
+    onMounted(async () => {
+      try {
+        console.log('🚀 Jardins Residence - Inicializando aplicação...')
+        
+        // 1. Inicializar coleta de UTMs primeiro
+        initializeUTMTracking()
+        console.log('✅ UTM Tracking inicializado')
+        
+        // 2. Inicializar sistema de tracking otimizado
+        const trackingResult = await initializeTrackingSystem()
+        
+        if (trackingResult.success) {
+          console.log('✅ Sistema de tracking inicializado com sucesso:')
+          console.log(`   - Google Analytics: ${trackingResult.googleAnalytics ? '✅' : '❌'}`)
+          console.log(`   - Facebook Pixel: ${trackingResult.facebookPixel ? '✅' : '❌'}`)
+          
+          // 3. Track page view após inicialização
+          setTimeout(() => {
+            trackPageView()
+            console.log('✅ Page view enviado com UTMs')
+          }, 1500)
+          
+        } else {
+          console.warn('⚠️ Problemas na inicialização do tracking:', trackingResult.error)
         }
-      }, 1000)
+        
+        // 4. Inicializar intersection observer
+        console.log('✅ Intersection Observer ativo')
+        
+        console.log('🎉 Jardins Residence - Aplicação totalmente carregada!')
+        
+      } catch (error) {
+        console.error('❌ Erro na inicialização da aplicação:', error)
+      }
     })
     
     return {

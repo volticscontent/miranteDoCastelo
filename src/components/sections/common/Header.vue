@@ -113,7 +113,7 @@ import { useFacebookTracking } from '../../../composables/useFacebookTracking'
 export default {
   name: 'Header',
   setup() {
-    const { trackEvent } = useFacebookTracking()
+    const { trackNavigationClick, trackHeroCTAClick } = useFacebookTracking()
     
     const isMobileMenuOpen = ref(false)
     const isHeaderHidden = ref(false)
@@ -147,12 +147,8 @@ export default {
     const toggleMobileMenu = () => {
       isMobileMenuOpen.value = !isMobileMenuOpen.value
       
-      // Track mobile menu interaction
-      trackEvent('MobileMenuToggle', {
-        content_category: 'real_estate',
-        menu_action: isMobileMenuOpen.value ? 'open' : 'close',
-        content_name: 'Jardins Residence'
-      })
+      // Track mobile menu interaction com novo padrão
+      trackNavigationClick('hero', isMobileMenuOpen.value ? 'menu_open' : 'menu_close')
       
       // Previne scroll do body quando menu está aberto
       if (isMobileMenuOpen.value) {
@@ -168,13 +164,8 @@ export default {
     }
 
     const scrollToSection = (sectionId) => {
-      // Track navigation click
-      trackEvent('NavigationClick', {
-        content_category: 'real_estate',
-        navigation_target: sectionId,
-        source: 'header_desktop',
-        content_name: 'Jardins Residence'
-      })
+      // Track navigation click com novo padrão
+      trackNavigationClick('hero', sectionId)
       
       const element = document.getElementById(sectionId)
       if (element) {
@@ -189,25 +180,15 @@ export default {
     }
 
     const scrollToContact = () => {
-      // Track CTA click
-      trackEvent('CTAClick', {
-        content_category: 'real_estate',
-        cta_type: 'fale_conosco',
-        cta_location: 'header',
-        content_name: 'Jardins Residence'
-      })
+      // Track CTA click com novo padrão
+      trackHeroCTAClick('fale_conosco')
       
       scrollToSection('contato')
     }
 
     const handleMobileNavClick = (sectionId) => {
-      // Track mobile navigation click
-      trackEvent('NavigationClick', {
-        content_category: 'real_estate',
-        navigation_target: sectionId,
-        source: 'header_mobile',
-        content_name: 'Jardins Residence'
-      })
+      // Track mobile navigation click com novo padrão
+      trackNavigationClick('hero', sectionId)
       
       closeMobileMenu()
       setTimeout(() => {

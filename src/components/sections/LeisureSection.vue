@@ -166,21 +166,167 @@
                 Do fitness ao playground, do salão de festas ao espaço gourmet, tudo pensado para seu conforto e bem-estar.
               </p>
               <div class="highlight-buttons">
-                <a 
-                  href="https://tour360.meupasseiovirtual.com/074307/303294/tourvirtual/index.html" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <button 
+                  @click="toggleTourContainer"
                   class="btn-tour"
+                  :class="{ 'active': showTourContainer }"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M8 12l4 4 4-4m-4-4v8"></path>
                   </svg>
-                  Tour Virtual 360°
-                </a>
+                  {{ showTourContainer ? 'Fechar Tour Virtual' : 'Tour Virtual 360°' }}
+                </button>
                 <button @click="openWhatsApp" class="btn-primary">
                   Fale Conosco
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Container do Tour Virtual Integrado -->
+        <div 
+          v-if="showTourContainer" 
+          class="tour-container"
+          :class="{ 'loading': tourLoading }"
+        >
+          <!-- Header do Tour -->
+          <div class="tour-header">
+            <div class="tour-header-info">
+              <h3 class="tour-title">Tour Virtual 360°</h3>
+              <p class="tour-subtitle">Conheça as áreas de lazer do Jardins Residence</p>
+            </div>
+            <div class="tour-header-controls">
+              <!-- Botão de tela cheia (mobile) -->
+              <button 
+                v-if="isMobile" 
+                @click="toggleFullscreen" 
+                class="tour-control-btn"
+                :title="isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'"
+              >
+                <svg v-if="!isFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+                <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+                </svg>
+              </button>
+
+              <!-- Botão de rotação (mobile portrait) -->
+              <button 
+                v-if="isMobile && isPortrait" 
+                @click="showRotationHint = !showRotationHint" 
+                class="tour-control-btn rotation-btn"
+                :class="{ 'active': showRotationHint }"
+                title="Dica de rotação"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.2.45 4.53 1.24"></path>
+                  <path d="M17 3l4 4-4 4"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Banner de Rotação (mobile portrait) -->
+          <div v-if="isMobile && isPortrait && showRotationHint" class="rotation-banner">
+            <div class="rotation-banner-content">
+              <div class="rotation-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.2.45 4.53 1.24"></path>
+                  <path d="M17 3l4 4-4 4"></path>
+                </svg>
+              </div>
+              <div class="rotation-text">
+                <span><strong>💡 Dica:</strong> Gire o celular para melhor experiência</span>
+              </div>
+              <button @click="showRotationHint = false" class="rotation-close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Container do iframe -->
+          <div class="tour-iframe-wrapper" :class="{ 'fullscreen': isFullscreen }">
+            <!-- Botão de sair da tela cheia (visível apenas em fullscreen) -->
+            <button 
+              v-if="isFullscreen" 
+              @click="exitFullscreen" 
+              class="exit-fullscreen-btn"
+              title="Sair da tela cheia"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+              </svg>
+            </button>
+            
+            <!-- Loading State -->
+            <div v-if="tourLoading" class="tour-loading">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Carregando tour virtual...</p>
+              <div class="loading-tips" v-if="isMobile">
+                <p class="loading-tip">💡 Para melhor experiência, conecte-se ao WiFi</p>
+              </div>
+            </div>
+            
+            <!-- Iframe -->
+            <iframe
+              v-show="!tourLoading"
+              :src="tourUrl"
+              class="tour-iframe"
+              frameborder="0"
+              allowfullscreen
+              allow="gyroscope; accelerometer; vr; fullscreen"
+              @load="onTourLoad"
+              title="Tour Virtual 360° - Jardins Residence"
+            ></iframe>
+            
+            <!-- Controles mobile overlay -->
+            <div v-if="isMobile && !tourLoading && !isFullscreen" class="mobile-controls">
+              <div class="control-item">
+                <span class="control-icon">👆</span>
+                <span class="control-text">Arraste</span>
+              </div>
+              <div class="control-item">
+                <span class="control-icon">🤏</span>
+                <span class="control-text">Zoom</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Instruções de uso -->
+          <div class="tour-instructions" v-if="!isFullscreen">
+            <div v-if="!isMobile" class="desktop-instructions">
+              <div class="instruction">
+                <span class="instruction-icon">🖱️</span>
+                <span>Clique e arraste para navegar</span>
+              </div>
+              <div class="instruction">
+                <span class="instruction-icon">🔍</span>
+                <span>Scroll para zoom</span>
+              </div>
+              <div class="instruction">
+                <span class="instruction-icon">🎯</span>
+                <span>Clique nos pontos para mudar de ambiente</span>
+              </div>
+            </div>
+            
+            <div v-else class="mobile-instructions">
+              <div class="instruction">
+                <span class="instruction-icon">📱</span>
+                <span>Toque e arraste para navegar</span>
+              </div>
+              <div class="instruction">
+                <span class="instruction-icon">🤏</span>
+                <span>Dois dedos para zoom</span>
+              </div>
+              <div class="instruction">
+                <span class="instruction-icon">🎯</span>
+                <span>Toque nos pontos para navegar</span>
               </div>
             </div>
           </div>
@@ -191,24 +337,177 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useFacebookTracking } from '../../composables/useFacebookTracking'
 
 export default {
   name: 'LeisureSection',
   setup() {
-    const { trackEvent } = useFacebookTracking()
+    const { trackLazerView, trackVideoPlay, trackContatoWhatsApp } = useFacebookTracking()
     
+    // Estados reativos
+    const showTourContainer = ref(false)
+    const tourLoading = ref(true)
+    const isMobile = ref(false)
+    const isPortrait = ref(true)
+    const isFullscreen = ref(false)
+    const showRotationHint = ref(true)
+    
+    // URL do tour virtual
+    const tourUrl = 'https://tour360.meupasseiovirtual.com/074307/303294/tourvirtual/index.html'
+    
+    // Detectar dispositivo e orientação
+    const checkDevice = () => {
+      isMobile.value = window.innerWidth <= 768
+      isPortrait.value = window.innerHeight > window.innerWidth
+      
+      // Auto-esconder aviso de rotação em landscape
+      if (!isPortrait.value) {
+        showRotationHint.value = false
+      }
+    }
+    
+    // Toggle do container do tour
+    const toggleTourContainer = () => {
+      showTourContainer.value = !showTourContainer.value
+      
+      if (showTourContainer.value) {
+        tourLoading.value = true
+        showRotationHint.value = isMobile.value && isPortrait.value
+        
+        // Track tour view
+        trackLazerView()
+        
+        // Scroll suave para o container do tour quando abrir
+        setTimeout(() => {
+          const tourContainer = document.querySelector('.tour-container')
+          if (tourContainer) {
+            tourContainer.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            })
+          }
+        }, 100)
+      } else {
+        // Se estava em fullscreen, sair
+        if (isFullscreen.value) {
+          exitFullscreen()
+        }
+      }
+    }
+    
+    // Fechar container do tour
+    const closeTourContainer = () => {
+      showTourContainer.value = false
+      tourLoading.value = true
+      isFullscreen.value = false
+      
+      // Sair do fullscreen se estiver ativo
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {})
+      }
+    }
+    
+    // Toggle fullscreen (apenas mobile)
+    const toggleFullscreen = async () => {
+      try {
+        if (!isFullscreen.value) {
+          const tourContainer = document.querySelector('.tour-container')
+          if (tourContainer && tourContainer.requestFullscreen) {
+            await tourContainer.requestFullscreen()
+          } else if (tourContainer && tourContainer.webkitRequestFullscreen) {
+            await tourContainer.webkitRequestFullscreen()
+          } else if (tourContainer && tourContainer.mozRequestFullScreen) {
+            await tourContainer.mozRequestFullScreen()
+          } else if (tourContainer && tourContainer.msRequestFullscreen) {
+            await tourContainer.msRequestFullscreen()
+          }
+        } else {
+          await exitFullscreen()
+        }
+      } catch (error) {
+        console.warn('Fullscreen não suportado:', error)
+      }
+    }
+    
+    // Sair do fullscreen
+    const exitFullscreen = async () => {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen()
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen()
+        } else if (document.mozCancelFullScreen) {
+          await document.mozCancelFullScreen()
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen()
+        }
+      } catch (error) {
+        console.warn('Erro ao sair do fullscreen:', error)
+      }
+    }
+    
+    // Listener para mudanças de fullscreen
+    const handleFullscreenChange = () => {
+      isFullscreen.value = !!document.fullscreenElement
+    }
+    
+    // Callback quando o tour carrega
+    const onTourLoad = () => {
+      // Delay para garantir carregamento completo
+      setTimeout(() => {
+        tourLoading.value = false
+      }, 1500)
+    }
+    
+    // Abrir WhatsApp
+    const openWhatsApp = () => {
+      const message = encodeURIComponent('Olá! Gostaria de saber mais sobre o Jardins Residence.')
+      const whatsappUrl = `https://wa.me/5511999999999?text=${message}`
+      window.open(whatsappUrl, '_blank')
+      
+      // Track WhatsApp click
+      trackContatoWhatsApp()
+    }
+    
+    // Lifecycle hooks
     onMounted(() => {
-      // Track leisure section view
-      trackEvent('ViewContent', {
-        content_category: 'real_estate',
-        content_type: 'leisure_amenities',
-        content_name: 'Jardins Residence - Área de Lazer',
-        value: 0,
-        currency: 'BRL'
-      })
+      checkDevice()
+      window.addEventListener('resize', checkDevice)
+      window.addEventListener('orientationchange', checkDevice)
+      document.addEventListener('fullscreenchange', handleFullscreenChange)
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+      document.addEventListener('mozfullscreenchange', handleFullscreenChange)
+      document.addEventListener('MSFullscreenChange', handleFullscreenChange)
+      
+      // Track section view
+      trackLazerView()
     })
+    
+    onUnmounted(() => {
+      window.removeEventListener('resize', checkDevice)
+      window.removeEventListener('orientationchange', checkDevice)
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
+    })
+    
+    return {
+      showTourContainer,
+      tourLoading,
+      tourUrl,
+      isMobile,
+      isPortrait,
+      isFullscreen,
+      showRotationHint,
+      toggleTourContainer,
+      closeTourContainer,
+      toggleFullscreen,
+      onTourLoad,
+      openWhatsApp,
+      checkDevice
+    }
   }
 }
 </script>
@@ -526,4 +825,533 @@ export default {
     margin: 0px 0px;
   }
 }
+
+/* Tour Container Integrado */
+.tour-container {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  animation: containerSlideIn 0.6s ease-out;
+}
+
+.tour-container.loading {
+  min-height: 400px;
+}
+
+.tour-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0;
+  z-index: 9999;
+  margin: 0;
+}
+
+@keyframes containerSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 800px;
+  }
+}
+
+/* Header do Tour */
+.tour-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d3748 100%);
+  color: white;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tour-header-info h3.tour-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: white;
+}
+
+.tour-header-info p.tour-subtitle {
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tour-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tour-control-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.tour-control-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.tour-control-btn.rotation-btn {
+  background: rgba(68, 179, 25, 0.2);
+  border-color: rgba(68, 179, 25, 0.4);
+  color: #44b319;
+}
+
+.tour-control-btn.rotation-btn:hover {
+  background: rgba(68, 179, 25, 0.3);
+  border-color: rgba(68, 179, 25, 0.6);
+}
+
+.tour-control-btn.rotation-btn.active {
+  background: rgba(68, 179, 25, 0.4);
+  border-color: rgba(68, 179, 25, 0.7);
+  box-shadow: 0 0 0 2px rgba(68, 179, 25, 0.2);
+}
+
+/* Banner de Rotação Mobile */
+.rotation-banner {
+  background: linear-gradient(135deg, #44b319 0%, #059669 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: bannerSlideDown 0.4s ease-out;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rotation-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.rotation-icon {
+  flex-shrink: 0;
+  animation: rotateIcon 2s ease-in-out infinite;
+}
+
+.rotation-text {
+  flex: 1;
+}
+
+.rotation-text span {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.rotation-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.rotation-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+@keyframes bannerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotateIcon {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(180deg); }
+  75% { transform: rotate(270deg); }
+}
+
+/* Container do iframe */
+.tour-iframe-wrapper {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tour-iframe-wrapper.fullscreen {
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+}
+
+.tour-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+}
+
+/* Loading State */
+.tour-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #44b319;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0 0 1rem 0;
+}
+
+.loading-tips {
+  margin-top: 1rem;
+}
+
+.loading-tip {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Controles Mobile Overlay */
+.mobile-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+  animation: controlsFadeIn 0.5s ease-out 2s both;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.control-icon {
+  font-size: 1rem;
+}
+
+.control-text {
+  white-space: nowrap;
+}
+
+@keyframes controlsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Instruções de uso */
+.tour-instructions {
+  background: #f8fafc;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.desktop-instructions,
+.mobile-instructions {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.instruction {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.instruction-icon {
+  font-size: 1.1rem;
+}
+
+/* Botão do Tour - Estado Ativo */
+.btn-tour.active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  transform: scale(1.02);
+}
+
+.btn-tour.active:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: scale(1.05);
+}
+
+.btn-tour.active svg {
+  transform: rotate(180deg);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .tour-container {
+    margin-top: 1.5rem;
+    border-radius: 12px;
+  }
+
+  .tour-container.fullscreen {
+    border-radius: 0;
+  }
+
+  .tour-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .tour-header-info h3.tour-title {
+    font-size: 1.25rem;
+  }
+
+  .tour-header-info p.tour-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .tour-header-controls {
+    gap: 0.5rem;
+  }
+
+  .tour-control-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .rotation-banner {
+    padding: 0.75rem 1rem;
+  }
+
+  .rotation-banner-content {
+    gap: 0.75rem;
+  }
+
+  .rotation-text span {
+    font-size: 0.8rem;
+  }
+
+  .tour-iframe-wrapper {
+    height: 400px;
+  }
+
+  .tour-instructions {
+    padding: 1rem 1.5rem;
+  }
+
+  .desktop-instructions,
+  .mobile-instructions {
+    gap: 1rem;
+    justify-content: space-around;
+  }
+
+  .instruction {
+    font-size: 0.8rem;
+  }
+
+  .mobile-controls {
+    bottom: 15px;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .control-item {
+    font-size: 0.75rem;
+  }
+}
+
+/* Landscape Mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .tour-header {
+    padding: 0.75rem 1.5rem;
+  }
+
+  .tour-header-info h3.tour-title {
+    font-size: 1.1rem;
+  }
+
+  .tour-header-info p.tour-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .tour-iframe-wrapper {
+    height: 350px;
+  }
+
+  .tour-instructions {
+    padding: 0.75rem 1.5rem;
+  }
+
+  .mobile-controls {
+    bottom: 10px;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .control-item {
+    font-size: 0.7rem;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+  .tour-container {
+    border-radius: 20px;
+  }
+
+  .tour-header {
+    padding: 2rem 2.5rem;
+  }
+
+  .tour-header-info h3.tour-title {
+    font-size: 1.75rem;
+  }
+
+  .tour-header-info p.tour-subtitle {
+    font-size: 1rem;
+  }
+
+  .tour-iframe-wrapper {
+    height: 600px;
+  }
+
+  .tour-instructions {
+    padding: 2rem 2.5rem;
+  }
+
+  .desktop-instructions,
+  .mobile-instructions {
+    gap: 3rem;
+  }
+
+  .instruction {
+    font-size: 0.95rem;
+  }
+}
+
+/* Botão de sair da tela cheia */
+.exit-fullscreen-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.exit-fullscreen-btn:hover {
+  background: rgba(220, 38, 38, 0.9);
+  transform: scale(1.1);
+  box-shadow: 0 6px 25px rgba(220, 38, 38, 0.4);
+}
+
+.exit-fullscreen-btn:active {
+  transform: scale(0.95);
+}
+
+/* Responsive para o botão de sair da tela cheia */
+@media (max-width: 768px) {
+  .exit-fullscreen-btn {
+    width: 45px;
+    height: 45px;
+    top: 15px;
+    right: 15px;
+  }
+  
+  .exit-fullscreen-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Landscape Mobile */
 </style> 

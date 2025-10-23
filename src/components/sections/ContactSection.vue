@@ -15,54 +15,79 @@
           <form @submit.prevent="submitForm" class="contact-form">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Nome completo</label>
+                <label for="contact-name" class="form-label">Nome completo</label>
                 <input 
+                  id="contact-name"
+                  name="name"
                   v-model="form.name" 
                   type="text" 
                   class="form-input"
                   placeholder="Seu nome"
                   required
+                  autocomplete="name"
                   @input="handleFormStart"
                 >
               </div>
               <div class="form-group">
-                <label class="form-label">Telefone</label>
+                <label for="contact-phone" class="form-label">Telefone</label>
                 <input 
+                  id="contact-phone"
+                  name="phone"
                   v-model="form.phone" 
                   type="tel" 
                   class="form-input"
                   placeholder="(11) 99999-9999"
                   required
+                  autocomplete="tel"
                   @input="handleFormStart"
                 >
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Email</label>
+              <label for="contact-email" class="form-label">Email</label>
               <input 
+                id="contact-email"
+                name="email"
                 v-model="form.email" 
                 type="email" 
                 class="form-input"
                 placeholder="seu@email.com"
                 required
+                autocomplete="email"
                 @input="handleFormStart"
               >
             </div>
 
             <div class="form-group">
-              <label class="form-label">Valor da parcela desejada</label>
-              <select v-model="form.installmentValue" class="form-select" required @change="handleFormStart">
+              <label for="contact-installment" class="form-label">Valor da parcela desejada</label>
+              <select 
+                id="contact-installment"
+                name="installmentValue"
+                v-model="form.installmentValue" 
+                class="form-select" 
+                required 
+                autocomplete="off"
+                @change="handleFormStart"
+              >
                 <option value="">Selecione o valor da parcela</option>
-                <option value="2k-2500">R$ 2.500 a R$ 3.000</option>
-                <option value="3k-3500">R$ 3.500 a R$ 4.000</option>
+                <option value="2k-2500">R$ 2.000 a R$ 2.500</option>
+                <option value="3k-3500">R$ 3.000 a R$ 3.500</option>
                 <option value="plano-investidor">Plano Investidor</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Renda familiar</label>
-              <select v-model="form.familyIncome" class="form-select" required @change="handleFormStart">
+              <label for="contact-income" class="form-label">Renda familiar</label>
+              <select 
+                id="contact-income"
+                name="familyIncome"
+                v-model="form.familyIncome" 
+                class="form-select" 
+                required 
+                autocomplete="off"
+                @change="handleFormStart"
+              >
                 <option value="">Selecione sua faixa de renda</option>
                 <option value="5-10">R$ 7.000 a R$ 10.000</option>
                 <option value="11-20">R$ 11.000 a R$ 20.000</option>
@@ -74,7 +99,7 @@
             <div class="form-group">
               <div class="protected-delivery">
                 <div class="delivery-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                     <path d="M9 12l2 2 4-4"></path>
                   </svg>
@@ -85,15 +110,17 @@
                 </div>
               </div>
               
-              <label class="checkbox-container">
+              <label for="contact-protection" class="checkbox-container">
                 <input 
+                  id="contact-protection"
+                  name="acceptsProtection"
                   v-model="form.acceptsProtection" 
                   type="checkbox" 
                   class="checkbox-input"
                   required
                   @change="handleFormStart"
                 >
-                <span class="checkbox-custom"></span>
+                <span class="checkbox-custom" aria-hidden="true"></span>
                 <span class="checkbox-label">Confirmo que entendi a proteção oferecida pela Caixa Econômica Federal</span>
               </label>
             </div>
@@ -136,13 +163,12 @@ export default {
   name: 'ContactSection',
   setup() {
     const { 
-      trackFormStart, 
-      trackFormSubmit, 
-      trackLead, 
-      trackWhatsAppClick,
-      trackContact,
-      trackCompleteRegistration,
-      trackConversion
+      trackContatoFormStart,
+      trackContatoFormSubmit,
+      trackContatoLead,
+      trackContatoWhatsApp,
+      trackContatoView,
+      trackContatoConversion
     } = useFacebookTracking()
     
     const form = ref({
@@ -160,7 +186,8 @@ export default {
     // Track form start when user begins typing
     const handleFormStart = () => {
       if (!formStarted.value) {
-        trackFormStart('contact')
+        // Track form start com novo padrão
+        trackContatoFormStart()
         formStarted.value = true
       }
     }
@@ -169,8 +196,8 @@ export default {
       isSubmitting.value = true
       
       try {
-        // Track form submission - simplificado
-        trackFormSubmit('contact')
+        // Track form submission com novo padrão
+        trackContatoFormSubmit()
         
         // Preparar dados EXATAMENTE no formato solicitado
         const formData = {
@@ -198,19 +225,19 @@ export default {
         if (response.ok) {
           console.log('Formulário enviado com sucesso para Make.com')
           
-          // CONVERSÃO: Marcar conversão quando formulário é enviado com sucesso - simplificado
-          trackConversion()
+          // CONVERSÃO: Marcar conversão quando formulário é enviado com sucesso com novo padrão
+          trackContatoConversion()
           
-          // Track registration completion - simplificado
-          trackCompleteRegistration()
+          // Track lead generation com novo padrão
+          trackContatoLead()
           
           // Criar mensagem para WhatsApp com os dados do formulário
           const message = `Olá Miguel! Pode me falar mais sobre o empreendimento:`
 
           const encodedMessage = encodeURIComponent(message)
           
-          // Track WhatsApp redirect from form
-          trackWhatsAppClick()
+          // Track WhatsApp redirect from form com novo padrão
+          trackContatoWhatsApp()
           
           window.open(`https://wa.me/553115746070?text=${encodedMessage}`, '_blank')
           
@@ -233,7 +260,7 @@ export default {
           // Mesmo com erro no webhook, ainda redirecionar para WhatsApp
           const message = `Olá Miguel! Pode me falar mais sobre o empreendimento:`
           const encodedMessage = encodeURIComponent(message)
-          trackWhatsAppClick()
+          trackContatoWhatsApp()
           window.open(`https://wa.me/553115746070?text=${encodedMessage}`, '_blank')
           
           alert('Formulário processado! Você será redirecionado para o WhatsApp.')
@@ -245,7 +272,7 @@ export default {
         // Mesmo com erro, ainda redirecionar para WhatsApp
         const message = `Olá Miguel! Pode me falar mais sobre o empreendimento?`
         const encodedMessage = encodeURIComponent(message)
-        trackWhatsAppClick()
+        trackContatoWhatsApp()
         window.open(`https://wa.me/553115746070?text=${encodedMessage}`, '_blank')
         
         alert('Formulário processado! Você será redirecionado para o WhatsApp.')
@@ -255,26 +282,26 @@ export default {
     }
 
     const callPhone = () => {
-      trackContact()
+      trackContatoView()
       window.open('tel:+553115746070', '_self')
     }
 
     const openWhatsApp = () => {
-      trackWhatsAppClick()
-      trackContact()
+      // Track WhatsApp click com novo padrão
+      trackContatoWhatsApp()
       
       const message = encodeURIComponent('Olá Miguel! Pode me falar mais sobre o empreendimento:')
       window.open(`https://wa.me/553115746070?text=${message}`, '_blank')
     }
 
     const openEmail = () => {
-      trackContact()
+      trackContatoView()
       window.open('mailto:vendas@jardinsresidence.com.br?subject=Interesse no Jardins Residence', '_self')
     }
 
     onMounted(() => {
-      // Track contact section view
-      trackContact()
+      // Track contact section view com novo padrão
+      trackContatoView()
     })
 
     return {

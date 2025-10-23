@@ -28,19 +28,63 @@
           </video>
         </div>
         
-        <!-- Mapa -->
+        <!-- Container do mapa -->
         <div class="map-container">
-          <div class="map-embed" @click="handleMapClick">
-            <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3750.8673468889824!2d-44.05655562374978!3d-19.93445598660153!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xa6961bc18602b1%3A0x5b665ca03e8f7c2b!2sR.%20Opala%2C%20285%20-%20S%C3%A3o%20Joaquim%2C%20Contagem%20-%20MG%2C%2032113-340!5e0!3m2!1spt-BR!2sbr!4v1709928163099!5m2!1spt-BR!2sbr"
-              width="100%" 
-              height="400" 
-              style="border:0; border-radius: 12px;" 
-              allowfullscreen="" 
-              loading="lazy" 
-              referrerpolicy="no-referrer-when-downgrade"
-              title="Localização do Jardins Residence - Rua Opala, 285, São Joaquim, Contagem - MG">
+          <div class="map-embed">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3751.8969!2d-43.9378!3d-19.9167!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDU1JzAwLjEiUyA0M8KwNTYnMTYuMSJX!5e0!3m2!1spt-BR!2sbr!4v1647875493829!5m2!1spt-BR!2sbr"
+              width="100%"
+              height="300"
+              style="border:0;"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
             </iframe>
+            <div class="map-overlay">
+              <button @click="toggleMapViewer" class="expand-map-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+                Ver Mapa Expandido
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Visualizador de Mapa Integrado -->
+        <div v-if="showMapViewer" class="map-viewer-container">
+          <div class="map-viewer-header">
+            <h3 class="map-viewer-title">Mapa da Localização</h3>
+            <button @click="closeMapViewer" class="close-viewer-btn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="map-viewer-content">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3751.8969!2d-43.9378!3d-19.9167!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDU1JzAwLjEiUyA0M8KwNTYnMTYuMSJX!5e0!3m2!1spt-BR!2sbr!4v1647875493829!5m2!1spt-BR!2sbr"
+              width="100%"
+              height="500"
+              style="border:0;"
+              allowfullscreen=""
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+          <div class="map-viewer-footer">
+            <a 
+              href="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3751.8969!2d-43.9378!3d-19.9167!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDU1JzAwLjEiUyA0M8KwNTYnMTYuMSJX!5e0!3m2!1spt-BR!2sbr!4v1647875493829!5m2!1spt-BR!2sbr" 
+              target="_blank" 
+              class="maps-button"
+            >
+              <svg class="maps-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              Abrir no Google Maps
+            </a>
           </div>
         </div>
         
@@ -227,27 +271,21 @@ import { useFacebookTracking } from '../../composables/useFacebookTracking'
 export default {
   name: 'LocationSection',
   setup() {
-    const { trackLocationView, trackViewContent, trackEvent } = useFacebookTracking()
+    const { trackLocalizacaoView, trackMapClick, trackPOIClick } = useFacebookTracking()
     
     const handleMapClick = () => {
-      trackEvent('MapInteraction', {
-        content_category: 'real_estate',
-        interaction_type: 'map_click',
-        content_name: 'Jardins Residence Location'
-      })
+      // Track map click com novo padrão
+      trackMapClick()
     }
     
     const handlePoiClick = (poiType) => {
-      trackEvent('POIClick', {
-        content_category: 'real_estate',
-        poi_type: poiType,
-        content_name: 'Jardins Residence Location'
-      })
+      // Track POI click com novo padrão
+      trackPOIClick(poiType)
     }
     
     onMounted(() => {
-      // Track location view when section is mounted
-      trackLocationView()
+      // Track location view com novo padrão
+      trackLocalizacaoView()
     })
     
     return {

@@ -66,8 +66,19 @@
 </template>
 
 <script>
+import { useFacebookTracking } from '../../composables/useFacebookTracking'
+import { onMounted } from 'vue'
+
 export default {
-  name: 'PanoramicSection'
+  name: 'PanoramicSection',
+  setup() {
+    const { trackPanoramicaView } = useFacebookTracking()
+
+    onMounted(() => {
+      // Track panoramic section view com novo padrão
+      trackPanoramicaView()
+    })
+  }
 }
 </script>
 

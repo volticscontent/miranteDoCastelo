@@ -1,0 +1,66 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = '''
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+        https://www.googletagmanager.com 
+        https://connect.facebook.net 
+        https://www.facebook.com 
+        https://maps.googleapis.com 
+        https://maps.gstatic.com 
+        https://www.google.com 
+        https://api.whatsapp.com 
+        https://web.whatsapp.com 
+        https://wa.me 
+        data: blob:;
+      style-src 'self' 'unsafe-inline' 
+        https://fonts.googleapis.com 
+        https://maps.googleapis.com 
+        https://maps.gstatic.com;
+      font-src 'self' 
+        https://fonts.gstatic.com 
+        https://maps.gstatic.com 
+        data:;
+      img-src 'self' data: blob: 
+        https://maps.googleapis.com 
+        https://maps.gstatic.com 
+        https://streetviewpixels-pa.googleapis.com 
+        https://www.google.com 
+        https://www.facebook.com 
+        https://connect.facebook.net;
+      connect-src 'self' 
+        https://www.google-analytics.com 
+        https://analytics.google.com 
+        https://www.googletagmanager.com 
+        https://connect.facebook.net 
+        https://www.facebook.com 
+        https://graph.facebook.com 
+        https://maps.googleapis.com 
+        https://api.whatsapp.com 
+        https://web.whatsapp.com;
+      frame-src 'self' 
+        https://www.google.com 
+        https://maps.google.com 
+        https://www.facebook.com 
+        https://web.whatsapp.com 
+        https://wa.me;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self' https://api.whatsapp.com;
+      frame-ancestors 'none';
+      upgrade-insecure-requests;
+    '''
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(self), payment=()"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 

@@ -80,12 +80,13 @@
                   Solicitar Informações
                 </button>
                 <button 
-                  @click="viewDetails(plant.id)" 
+                  @click="togglePlantViewer(plant.id)" 
                   @mousedown.stop
                   @touchstart.stop
                   class="btn-secondary"
+                  :class="{ 'active': showPlantViewer && selectedPlant?.id === plant.id }"
                 >
-                  Ver Planta Detalhada
+                  {{ showPlantViewer && selectedPlant?.id === plant.id ? 'Fechar Planta' : 'Ver Planta Detalhada' }}
                 </button>
               </div>
             </div>
@@ -127,19 +128,31 @@
       </div>
     </div>
 
-    <!-- Modal para Visualizar Planta -->
-    <div v-if="showModal" class="plant-modal" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <!-- Botão Fechar - Sempre visível -->
-        <button @click="closeModal" class="close-button">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+    <!-- Visualizador de Planta Integrado -->
+    <div v-if="showPlantViewer" class="plant-viewer-container" ref="plantViewerContainer">
+      <div class="plant-viewer-content">
+        <!-- Cabeçalho do Visualizador -->
+        <div class="viewer-header">
+          <div class="viewer-header-info">
+            <h3 class="viewer-title">{{ selectedPlant?.title }}</h3>
+            <p class="viewer-subtitle">{{ selectedPlant?.type }}</p>
+          </div>
+          <button @click="closePlantViewer" class="close-viewer-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Estado de Carregamento -->
+        <div v-if="plantLoading" class="plant-loading">
+          <div class="loading-spinner"></div>
+          <p>Carregando planta detalhada...</p>
+        </div>
 
         <!-- Controles de Zoom -->
-        <div class="zoom-controls">
+        <div v-if="!plantLoading" class="zoom-controls">
           <button @click="zoomIn" class="zoom-btn" title="Aumentar zoom">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
@@ -164,12 +177,12 @@
         </div>
 
         <!-- Indicador de Zoom -->
-        <div class="zoom-indicator" v-if="zoomLevel !== 1">
+        <div class="zoom-indicator" v-if="zoomLevel !== 1 && !plantLoading">
           {{ Math.round(zoomLevel * 100) }}%
         </div>
 
         <!-- Aviso de Rotação (apenas mobile) -->
-        <div v-if="isMobile && isPortrait && showRotationHint" class="rotation-hint">
+        <div v-if="isMobile && isPortrait && showRotationHint && !plantLoading" class="rotation-hint">
           <div class="rotation-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.2.45 4.53 1.24"/>
@@ -179,9 +192,11 @@
           <p>Gire o celular para melhor visualização</p>
         </div>
 
-        <!-- Imagem da Planta -->
+        <!-- Container da Imagem -->
         <div 
-          class="modal-image-container" 
+          v-if="!plantLoading"
+          class="plant-image-container" 
+          :class="{ 'fullscreen': isFullscreen }"
           @wheel="handleWheel"
           @mousedown="startPan"
           @mousemove="handlePan"
@@ -195,7 +210,7 @@
           <img 
             :src="selectedPlant?.image" 
             :alt="selectedPlant?.title" 
-            class="modal-image"
+            class="plant-image"
             :class="{ 'image-loaded': imageLoaded }"
             :style="{
               transform: `scale(${zoomLevel}) translate(${panX}px, ${panY}px)`,
@@ -207,12 +222,24 @@
           >
         </div>
 
-        <!-- Instruções de Uso simplificadas -->
-        <div class="usage-instructions" v-if="!isMobile">
-          <p>🖱️ Scroll para zoom • 🖐️ Arraste para mover</p>
+        <!-- Instruções de Uso -->
+        <div class="usage-instructions" v-if="!plantLoading && !isMobile">
+          <p>🖱️ Scroll para zoom • 🖐️ Arraste para mover • 👆 Clique para zoom rápido</p>
         </div>
-        <div class="usage-instructions mobile" v-else>
-          <p>📱 Pinça para zoom • 👆 Arraste para mover</p>
+        <div class="usage-instructions mobile" v-else-if="!plantLoading">
+          <p>📱 Pinça para zoom • 👆 Arraste para mover • 🔄 Gire para melhor visualização</p>
+        </div>
+
+        <!-- Botão WhatsApp -->
+        <div class="viewer-actions" v-if="!plantLoading">
+          <button @click="requestPlantInfo(selectedPlant?.id)" 
+                  @mousedown.stop
+                  @touchstart.stop class="whatsapp-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            Solicitar Informações no WhatsApp
+          </button>
         </div>
       </div>
     </div>
@@ -227,16 +254,16 @@ export default {
   name: 'PlantsSection',
   setup() {
     const { 
-      trackFloorPlanView, 
-      trackWhatsAppClick, 
-      trackViewContent,
-      trackFormStart,
-      trackContact
+      trackPlantasView,
+      trackPlantClick,
+      trackPlantDetailView,
+      trackPlantImageZoom,
+      trackContatoFormStart
     } = useFacebookTracking()
     
     const currentIndex = ref(0)
     const cardWidth = ref(400)
-    const showModal = ref(false)
+    const showPlantViewer = ref(false)
     const selectedPlant = ref(null)
     const isMobile = ref(false)
     const isPortrait = ref(true)
@@ -256,20 +283,18 @@ export default {
     const dragThreshold = 50 // Distância mínima para trocar slide
     const showRotationHint = ref(true)
     const imageLoaded = ref(false)
+    const plantLoading = ref(false)
+    const isFullscreen = ref(false)
     
     const plants = ref([
       {
         id: 'planta-2q-49m',
-        type: 'Apartamento Tipo',
+        type: '2 Quartos - 2 Banheiros',
         title: 'Apartamento 49,5m²',
-        area: '2 Quartos com Suíte',
-        description: 'Apartamento com 2 quartos sendo 1 suíte, sala de estar/jantar, cozinha, área de serviço e 2 banheiros. Paredes internas em Drywall.',
+        area: '2 Quartos',
+        description: 'Apartamento com 2 quartos, sala de estar/jantar, cozinha, área de serviço e 2 banheiros. Paredes internas em Drywall.',
         image: '/plantas/planta_tipo_1.png',
         features: [
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9,22 9,12 15,12 15,22"></polyline></svg>', 
-            text: '1 suíte' 
-          },
           { 
             icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>', 
             text: '2 quartos' 
@@ -290,10 +315,10 @@ export default {
       },
       {
         id: 'planta-2q-51m',
-        type: 'Apartamento Tipo',
+        type: '1 Quarto - 1 Suite - 2 Banheiros',
         title: 'Apartamento 51,76m²',
-        area: '2 Quartos com Suíte',
-        description: 'Apartamento com 2 quartos sendo 1 suíte, sala de estar/jantar, cozinha, área de serviço e 2 banheiros. Layout linear otimizado. Paredes internas em Drywall.',
+        area: '2 Quartos',
+        description: 'Apartamento com 2 quartos, sala de estar/jantar, cozinha, área de serviço e 2 banheiros. Layout linear otimizado. Paredes internas em Drywall.',
         image: '/plantas/planta_tipo_2.png',
         features: [
           { 
@@ -318,122 +343,6 @@ export default {
           }
         ]
       },
-      {
-        id: 'planta-2q-garden-64m',
-        type: 'Garden',
-        title: 'Apartamento Garden 64,78m²',
-        area: '2 Quartos com Suíte',
-        description: 'Garden com 2 quartos sendo 1 suíte, sala de estar/jantar, cozinha, área de serviço, 2 banheiros e área privativa com jardim. Paredes internas em Drywall.',
-        image: '/plantas/planta_tipo_3.png',
-        features: [
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9,22 9,12 15,12 15,22"></polyline></svg>', 
-            text: '1 suíte' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>', 
-            text: '2 quartos' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"></path><path d="M21 12c.552 0 1-.448 1-1V5c0-.552-.448-1-1-1H3c-.552 0-1 .448-1 1v6c0 .552.448 1 1 1h18z"></path><path d="M2 12v7c0 .552.448 1 1 1h18c.552 0 1-.448 1-1v-7"></path></svg>', 
-            text: '2 banheiros' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18m-9-9v18"></path><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>', 
-            text: 'Cozinha' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"></path><path d="M16 3v4M8 3v4"></path></svg>', 
-            text: 'Jardim privativo' 
-          }
-        ]
-      },
-      {
-        id: 'planta-2q-garden-74m',
-        type: 'Garden',
-        title: 'Apartamento Garden 74,10m²',
-        area: '2 Quartos com Suíte',
-        description: 'Garden com 2 quartos sendo 1 suíte, sala de estar/jantar, cozinha, área de serviço, 2 banheiros e área privativa com jardim e espaço gourmet. Paredes internas em Drywall.',
-        image: '/plantas/planta_tipo_4.png',
-        features: [
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9,22 9,12 15,12 15,22"></polyline></svg>', 
-            text: '1 suíte' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>', 
-            text: '2 quartos' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"></path><path d="M21 12c.552 0 1-.448 1-1V5c0-.552-.448-1-1-1H3c-.552 0-1 .448-1 1v6c0 .552.448 1 1 1h18z"></path><path d="M2 12v7c0 .552.448 1 1 1h18c.552 0 1-.448 1-1v-7"></path></svg>', 
-            text: '2 banheiros' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18m-9-9v18"></path><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>', 
-            text: 'Cozinha' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"></path><path d="M16 3v4M8 3v4"></path></svg>', 
-            text: 'Jardim + Gourmet' 
-          }
-        ]
-      },
-      {
-        id: 'planta-1q-garden-58m',
-        type: 'Garden',
-        title: 'Apartamento Garden 58,75m²',
-        area: '1 Quarto',
-        description: 'Garden com 1 quarto, sala de estar/jantar, cozinha, área de serviço, banheiro, depósito e área privativa com jardim. Paredes internas em Drywall.',
-        image: '/plantas/planta_tipo_5.png',
-        features: [
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>', 
-            text: '1 quarto' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"></path><path d="M21 12c.552 0 1-.448 1-1V5c0-.552-.448-1-1-1H3c-.552 0-1 .448-1 1v6c0 .552.448 1 1 1h18z"></path><path d="M2 12v7c0 .552.448 1 1 1h18c.552 0 1-.448 1-1v-7"></path></svg>', 
-            text: '1 banheiro' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18m-9-9v18"></path><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>', 
-            text: 'Cozinha' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"></path><path d="M16 3v4M8 3v4"></path></svg>', 
-            text: 'Jardim privativo' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>', 
-            text: 'Depósito' 
-          }
-        ]
-      },
-      {
-        id: 'planta-1q-office-51m',
-        type: 'Apartamento Tipo',
-        title: 'Apartamento 51,76m²',
-        area: '1 Quarto com Home Office',
-        description: 'Apartamento com 1 quarto, sala de estar/jantar, cozinha, área de serviço, banheiro e espaço home office. Paredes internas em Drywall.',
-        image: '/plantas/planta_tipo_6.png',
-        features: [
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>', 
-            text: '1 quarto' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"></path><path d="M21 12c.552 0 1-.448 1-1V5c0-.552-.448-1-1-1H3c-.552 0-1 .448-1 1v6c0 .552.448 1 1 1h18z"></path><path d="M2 12v7c0 .552.448 1 1 1h18c.552 0 1-.448 1-1v-7"></path></svg>', 
-            text: '1 banheiro' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18m-9-9v18"></path><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>', 
-            text: 'Cozinha' 
-          },
-          { 
-            icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10,9 9,9 8,9"></polyline></svg>', 
-            text: 'Home Office' 
-          }
-        ]
-      }
     ])
     
     const updateCardWidth = () => {
@@ -508,10 +417,10 @@ export default {
       setTimeout(() => {
         currentIndex.value = index
         
-        // Track plant view when slide changes
+        // Track plant click com novo padrão
         const plant = plants.value[index]
         if (plant) {
-          trackViewContent('property', plant.id, plant.price ? parseInt(plant.price.replace(/\D/g, '')) : 240000)
+          trackPlantClick(plant.id)
         }
         
         // Remove a classe após a transição
@@ -524,8 +433,8 @@ export default {
     }
     
     const requestPlantInfo = (plantId) => {
-      // Track form start
-      trackFormStart()
+      // Track form start com novo padrão
+      trackContatoFormStart()
       
       // Rolar até o formulário de contato
       const contactSection = document.getElementById('contato')
@@ -545,22 +454,44 @@ export default {
       }
     }
     
-    const viewDetails = (plantId) => {
+    const togglePlantViewer = (plantId) => {
       const plant = plants.value.find(p => p.id === plantId)
+      if (plant && selectedPlant.value?.id === plantId && showPlantViewer.value) {
+        // Se já está aberto para esta planta, fechar
+        closePlantViewer()
+        return
+      }
+      
       if (plant) {
-        // Track floor plan view
-        trackFloorPlanView(plantId)
+        // Track plant detail view com novo padrão
+        trackPlantDetailView(plantId)
         
         // Reset states
         imageLoaded.value = false
+        plantLoading.value = true
         zoomLevel.value = 1
         panX.value = 0
         panY.value = 0
         
         selectedPlant.value = plant
-        showModal.value = true
+        showPlantViewer.value = true
         showRotationHint.value = true
-        document.body.style.overflow = 'hidden'
+        
+        // Scroll suave até o visualizador após um pequeno delay
+        setTimeout(() => {
+          const viewerContainer = document.querySelector('.plant-viewer-container')
+          if (viewerContainer) {
+            viewerContainer.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            })
+          }
+        }, 100)
+        
+        // Simula carregamento da planta
+        setTimeout(() => {
+          plantLoading.value = false
+        }, 800)
         
         // Esconde o aviso de rotação após 3 segundos
         setTimeout(() => {
@@ -569,15 +500,30 @@ export default {
       }
     }
 
-    const closeModal = () => {
-      showModal.value = false
+    const closePlantViewer = () => {
+      showPlantViewer.value = false
       selectedPlant.value = null
-      document.body.style.overflow = 'auto'
+      plantLoading.value = false
+      zoomLevel.value = 1
+      panX.value = 0
+      panY.value = 0
+      isFullscreen.value = false
+      
+      // Scroll de volta para os cards de plantas
+      setTimeout(() => {
+        const carouselContainer = document.querySelector('.carousel-container')
+        if (carouselContainer) {
+          carouselContainer.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'center'
+          })
+        }
+      }, 100)
     }
 
     const handleKeydown = (event) => {
-      if (event.key === 'Escape' && showModal.value) {
-        closeModal()
+      if (event.key === 'Escape' && showPlantViewer.value) {
+        closePlantViewer()
       }
     }
     
@@ -587,6 +533,11 @@ export default {
       if (newZoom === 1) {
         panX.value = 0
         panY.value = 0
+      }
+      
+      // Track image zoom com novo padrão
+      if (selectedPlant.value) {
+        trackPlantImageZoom(selectedPlant.value.id)
       }
     }
     
@@ -759,6 +710,11 @@ export default {
     const handleImageClick = (event) => {
       if (zoomLevel.value === 1) {
         zoomLevel.value = 2
+        
+        // Track image zoom com novo padrão
+        if (selectedPlant.value) {
+          trackPlantImageZoom(selectedPlant.value.id)
+        }
       } else {
         resetZoom()
       }
@@ -871,6 +827,15 @@ export default {
       imageLoaded.value = true
     }
     
+    const toggleFullscreen = () => {
+      isFullscreen.value = !isFullscreen.value
+      if (isFullscreen.value) {
+        document.documentElement.requestFullscreen()
+      } else {
+        document.exitFullscreen()
+      }
+    }
+    
     // Track initial plant view on mount
     onMounted(() => {
       updateCardWidth()
@@ -880,11 +845,8 @@ export default {
       window.addEventListener('orientationchange', checkOrientation)
       document.addEventListener('keydown', handleKeydown)
       
-      // Track initial plant view
-      if (plants.value.length > 0) {
-        const firstPlant = plants.value[0]
-        trackViewContent('property', firstPlant.id, firstPlant.price ? parseInt(firstPlant.price.replace(/\D/g, '')) : 240000)
-      }
+      // Track plantas section view com novo padrão
+      trackPlantasView()
     })
     
     onUnmounted(() => {
@@ -899,7 +861,7 @@ export default {
       plants,
       currentIndex,
       cardWidth,
-      showModal,
+      showPlantViewer,
       selectedPlant,
       isMobile,
       isPortrait,
@@ -907,8 +869,8 @@ export default {
       previousSlide,
       goToSlide,
       requestPlantInfo,
-      viewDetails,
-      closeModal,
+      togglePlantViewer,
+      closePlantViewer,
       zoomLevel,
       panX,
       panY,
@@ -944,7 +906,10 @@ export default {
       panMomentum,
       applyMomentum,
       imageLoaded,
-      onImageLoad
+      onImageLoad,
+      plantLoading,
+      isFullscreen,
+      toggleFullscreen
     }
   }
 }
@@ -1524,66 +1489,73 @@ export default {
   }
 }
 
-/* Modal Styles */
-.plant-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
+/* Visualizador de Planta Integrado */
+.plant-viewer-container {
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(0px);
-  animation: modalOverlay 0.6s ease-out forwards;
+  max-width: 1400px;
+  margin: 3rem auto 0;
+  padding: 0 2rem;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: containerSlideIn 0.6s ease-out;
 }
 
-@keyframes modalOverlay {
-  0% {
-    background: rgba(0, 0, 0, 0);
-    backdrop-filter: blur(0px);
-  }
-  100% {
-    background: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(10px);
-  }
-}
-
-.modal-content {
-  position: relative;
-  width: 90%;
-  height: 90%;
-  max-width: 1200px;
-  max-height: 800px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0.8);
-  animation: modalContent 0.4s ease-out 0.3s forwards;
-}
-
-@keyframes modalContent {
+@keyframes containerSlideIn {
   0% {
     opacity: 0;
-    transform: scale(0.8);
+    transform: translateY(30px);
+    max-height: 0;
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
+    max-height: 1000px;
   }
 }
 
-.close-button {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  color: #333;
+.plant-viewer-content {
+  position: relative;
+  width: 100%;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.viewer-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.viewer-header-info {
+  flex: 1;
+  text-align: left;
+}
+
+.viewer-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.viewer-subtitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #10b981;
+}
+
+.close-viewer-btn {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  color: #4a5568;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -1592,196 +1564,55 @@ export default {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  z-index: 1001;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  opacity: 0;
-  animation: buttonFadeIn 0.3s ease-out 0.7s forwards;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-@keyframes buttonFadeIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.close-button:hover {
-  background: rgba(255, 255, 255, 1);
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-}
-
-.rotation-hint {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
+.close-viewer-btn:hover {
+  background: #ef4444;
   color: white;
-  z-index: 5;
-  transition: opacity 0.3s ease-out;
+  border-color: #ef4444;
+  transform: scale(1.05);
 }
 
-.rotation-icon {
-  margin-bottom: 1rem;
-  animation: rotate 0.9s ease-in-out;
-}
-
-.rotation-hint p {
-  font-size: 1rem;
-  margin: 0;
-  opacity: 0.9;
-}
-
-@keyframes rotate {
-  0% { 
-    transform: rotate(0deg);
-    opacity: 1;
-  }
-  50% { 
-    transform: rotate(180deg);
-    opacity: 1;
-  }
-  100% { 
-    transform: rotate(360deg);
-    opacity: 0;
-  }
-}
-
-.modal-image-container {
-  width: 100%;
-  height: 80%;
+.plant-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  touch-action: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  padding: 4rem 2rem;
+  color: #4a5568;
 }
 
-.modal-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 8px;
-  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  will-change: transform;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  opacity: 0;
-  transform: scale(0.9);
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #10b981;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+  animation: spin 1s linear infinite;
 }
 
-.modal-image.image-loaded {
-  animation: imageZoom 0.5s ease-out 0.7s forwards;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@keyframes imageZoom {
-  0% {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+.plant-loading p {
+  font-size: 1rem;
+  margin: 0;
 }
 
-.modal-info {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  color: white;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
-
-.modal-info h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.modal-info span {
-  color: #10b981;
-  font-weight: 600;
-}
-
-/* Mobile Modal Adjustments */
-@media (max-width: 768px) {
-  .modal-content {
-    width: 95%;
-    height: 95%;
-  }
-
-  .close-button {
-    top: 15px;
-    right: 15px;
-    width: 45px;
-    height: 45px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid rgba(0, 0, 0, 0.1);
-  }
-
-  .rotation-hint p {
-    font-size: 0.9rem;
-  }
-}
-
-/* Landscape Mobile */
-@media (max-width: 768px) and (orientation: landscape) {
-  .rotation-hint {
-    display: none;
-  }
-  
-  .modal-image-container {
-    height: 85%;
-  }
-  
-  .close-button {
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-  }
-}
-
-/* Zoom Controls */
 .zoom-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  opacity: 0;
-  animation: controlsFadeIn 0.3s ease-out 0.9s forwards;
-}
-
-@keyframes controlsFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .zoom-btn {
@@ -1802,24 +1633,101 @@ export default {
 .zoom-btn:hover {
   background: #10b981;
   color: white;
+  border-color: #10b981;
+  transform: scale(1.05);
 }
 
-/* Zoom Indicator */
 .zoom-indicator {
-  background: #ffffff;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #059669;
-  opacity: 0;
-  animation: indicatorFadeIn 0.3s ease-out 1s forwards;
+  backdrop-filter: blur(10px);
+  z-index: 10;
 }
 
-@keyframes indicatorFadeIn {
+.rotation-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #4a5568;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 15;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  20%, 80% { opacity: 1; }
+}
+
+.rotation-icon {
+  margin-bottom: 1rem;
+  color: #10b981;
+}
+
+.rotation-hint p {
+  font-size: 1rem;
+  margin: 0;
+  color: #4a5568;
+}
+
+.plant-image-container {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  margin-bottom: 1.5rem;
+}
+
+.plant-image-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  border: none;
+  background: #000;
+}
+
+.plant-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+  user-select: none;
+}
+
+.plant-image.image-loaded {
+  animation: imageZoomIn 0.5s ease-out;
+}
+
+@keyframes imageZoomIn {
   0% {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.95);
   }
   100% {
     opacity: 1;
@@ -1827,40 +1735,128 @@ export default {
   }
 }
 
-/* Usage Instructions */
 .usage-instructions {
   text-align: center;
-  margin-top: 1rem;
-  padding: 0 2rem;
-  opacity: 0;
-  animation: instructionsFadeIn 0.3s ease-out 1.1s forwards;
-}
-
-@keyframes instructionsFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
 }
 
 .usage-instructions p {
   margin: 0;
   font-size: 0.875rem;
-  color: #ffffff;
-  opacity: 0.9;
+  color: #0369a1;
+  font-weight: 500;
 }
 
 .usage-instructions.mobile {
   display: none;
 }
 
+.viewer-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.whatsapp-btn {
+  background: #25d366;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-btn:hover {
+  background: #22c55e;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(37, 211, 102, 0.4);
+}
+
+/* Responsividade do Visualizador */
 @media (max-width: 768px) {
+  .plant-viewer-container {
+    margin: 2rem auto 0;
+    padding: 0 1rem;
+    border-radius: 16px;
+  }
+
+  .plant-viewer-content {
+    padding: 1.5rem;
+  }
+
+  .viewer-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .viewer-header-info {
+    text-align: center;
+    width: 100%;
+  }
+
+  .viewer-title {
+    font-size: 1.25rem;
+  }
+
+  .close-viewer-btn {
+    align-self: flex-end;
+    width: 45px;
+    height: 45px;
+  }
+
+  .plant-image-container {
+    height: 400px;
+  }
+
+  .zoom-controls {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .zoom-btn {
+    width: 40px;
+    height: 40px;
+  }
+
   .usage-instructions.mobile {
     display: block;
+  }
+
+  .usage-instructions:not(.mobile) {
+    display: none;
+  }
+
+  .whatsapp-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .plant-image-container {
+    height: 300px;
+  }
+
+  .viewer-header {
+    margin-bottom: 1rem;
+  }
+
+  .zoom-controls {
+    margin-bottom: 1rem;
   }
 }
 </style> 

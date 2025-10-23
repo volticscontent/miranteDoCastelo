@@ -21,9 +21,12 @@
         
         <!-- Subtítulo refinado -->
         <div class="hero-subtitle">
-          <p>Apartamentos modernos com entrada facilitada de</p>
+          <p>Apartamentos modernos com 
+            <br><span class="text-accent=sub">entrada facilitada</span>
+            <br><span class="text-accent-subtitle">e sinal de:</span><br>
+          </p>
           <div class="badge-subtitle">  
-            <span class="text-accent-subtitle">R$35.900,00</span>
+            <span class="text-accent-subtitle">R$14.900,00</span>
           </div>
         </div>
         
@@ -73,22 +76,14 @@ export default {
   name: 'Hero',
   setup() {
     const { 
-      trackViewContent, 
-      trackEvent, 
-      trackContact,
-      trackPropertyView
+      trackHeroView,
+      trackHeroCTAClick,
+      trackNavigationClick
     } = useFacebookTracking()
     
     const openWhatsApp = () => {
-      // Track CTA click
-      trackEvent('CTAClick', {
-        content_category: 'real_estate',
-        cta_type: 'solicitar_informacoes',
-        cta_location: 'hero',
-        content_name: 'Jardins Residence'
-      })
-      
-      trackContact('hero_cta')
+      // Track Hero CTA click com novo padrão
+      trackHeroCTAClick('solicitar_informacoes')
       
       const contactSection = document.getElementById('contato')
       if (contactSection) {
@@ -97,19 +92,11 @@ export default {
     }
     
     const scrollToPlants = () => {
-      // Track CTA click
-      trackEvent('CTAClick', {
-        content_category: 'real_estate',
-        cta_type: 'ver_plantas',
-        cta_location: 'hero',
-        content_name: 'Jardins Residence'
-      })
+      // Track Hero CTA click com novo padrão
+      trackHeroCTAClick('ver_plantas')
       
-      trackEvent('NavigationClick', {
-        content_category: 'real_estate',
-        navigation_target: 'plantas',
-        source: 'hero'
-      })
+      // Track navigation click
+      trackNavigationClick('hero', 'plantas')
       
       const plantsSection = document.getElementById('plantas')
       if (plantsSection) {
@@ -118,18 +105,8 @@ export default {
     }
     
     onMounted(() => {
-      // Track hero view
-      trackViewContent('property', 'jardins_residence_hero', 240000)
-      trackPropertyView('jardins_residence', 240000)
-      
-      // Track hero engagement
-      trackEvent('HeroView', {
-        content_category: 'real_estate',
-        content_name: 'Jardins Residence',
-        hero_version: 'v1',
-        value: 240000,
-        currency: 'BRL'
-      })
+      // Track hero view com novo padrão
+      trackHeroView()
     })
     
     return {
@@ -209,7 +186,7 @@ export default {
   margin-bottom: 24px;
   color: white;
   letter-spacing: -2px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .text-accent {
@@ -225,6 +202,10 @@ export default {
   line-height: 1.6;
   font-weight: 300;
   letter-spacing: -0.2px;
+}
+
+.hero-subtitle {
+  font-weight: 500;
 }
 
 .badge-subtitle {
@@ -245,6 +226,10 @@ export default {
   font-weight: 400;
   color: rgba(255, 255, 255, 0.95);
   font-size: 30px;
+}
+
+.text-accent-sub {
+  font-weight: 500;
 }
 
 /* CTAs minimalistas */
@@ -458,4 +443,4 @@ export default {
     transform: none;
   }
 }
-</style> 
+</style>
